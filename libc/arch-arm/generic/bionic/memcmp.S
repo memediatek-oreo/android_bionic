@@ -110,6 +110,7 @@ ENTRY(memcmp)
 
         /* save registers */
         stmfd       sp!, {r4, lr}
+        .save {r4, lr}
         .cfi_def_cfa_offset 8
         .cfi_rel_offset r4, 0
         .cfi_rel_offset lr, 4
@@ -226,15 +227,21 @@ ENTRY(memcmp)
         cmp         r2, #0
         moveq       r0, #0
         bxeq        lr
+
+        /* Preserve lr for backtrace */
+        push        {lr}
+        .cfi_def_cfa_offset 4
+        .cfi_rel_offset lr, 0
+
         mov         r3, r0
 11:
         ldrb        r0, [r3], #1
         ldrb        ip, [r1], #1
         subs        r0, ip
-        bxne        lr
+        popne       {pc}
         subs        r2, r2, #1
         bne         11b
-        bx          lr
+        pop         {pc}
 
 5:      /*************** non-congruent case ***************/
         and         r0, r1, #3
@@ -294,7 +301,12 @@ ENTRY(memcmp)
 
 4:      /*************** offset is 1 or 3 (less optimized) ***************/
 
-		stmfd		sp!, {r5, r6, r7}
+        stmfd		sp!, {r5, r6, r7}
+        .save {r5, r6, r7}
+        .cfi_def_cfa_offset 12
+        .cfi_rel_offset r5, 0
+        .cfi_rel_offset r6, 4
+        .cfi_rel_offset r7, 8
 
         // r5 = rhs
         // r6 = lhs
@@ -323,7 +335,11 @@ ENTRY(memcmp)
         bhs         6b
 
         sub         r1, r1, r6, lsr #3
-		ldmfd       sp!, {r5, r6, r7}
+        ldmfd       sp!, {r5, r6, r7}
+        .cfi_adjust_cfa_offset -12
+        .cfi_restore r5
+        .cfi_restore r6
+        .cfi_restore r7
 
         /* are we done? */
         adds        r2, r2, #8
@@ -338,6 +354,10 @@ ENTRY(memcmp)
         sub         r1, r1, r6, lsr #3
         sub         r4, r4, #4
         mov         r2, #4
-		ldmfd		sp!, {r5, r6, r7}
+        ldmfd		sp!, {r5, r6, r7}
+        .cfi_adjust_cfa_offset -12
+        .cfi_restore r5
+        .cfi_restore r6
+        .cfi_restore r7
         b           8b
 END(memcmp)

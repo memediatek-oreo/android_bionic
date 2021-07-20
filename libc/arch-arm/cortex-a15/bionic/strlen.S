@@ -63,6 +63,7 @@
 ENTRY(strlen)
     pld     [r0, #0]
     mov     r1, r0
+    cbz r0, .L_direct_return
 
     ands    r3, r0, #7
     beq     .L_mainloop
@@ -111,6 +112,9 @@ ENTRY(strlen)
     ands    ip, ip, #0x80808080
     bne     .L_zero_in_second_register
     b       .L_mainloop
+
+.L_direct_return:
+    bx      lr
 
 .L_update_count_and_return:
     sub     r0, r1, r0

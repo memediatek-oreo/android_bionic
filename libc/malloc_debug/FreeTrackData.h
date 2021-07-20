@@ -33,7 +33,11 @@
 #include <pthread.h>
 
 #include <deque>
+#ifdef MTK_MALLOC_DEBUG_ENHANCE
+#include <map>
+#else
 #include <unordered_map>
+#endif
 #include <vector>
 
 #include <private/bionic_macros.h>
@@ -57,6 +61,10 @@ class FreeTrackData : public OptionData {
 
   void LogBacktrace(const Header* header);
 
+  void PrepareFork() { pthread_mutex_lock(&mutex_); }
+  void PostForkParent() { pthread_mutex_unlock(&mutex_); }
+  void PostForkChild() { pthread_mutex_init(&mutex_, NULL); }
+
  private:
   void LogFreeError(const Header* header, const uint8_t* pointer);
   void VerifyAndFree(const Header* header);
@@ -64,7 +72,11 @@ class FreeTrackData : public OptionData {
   pthread_mutex_t mutex_ = PTHREAD_MUTEX_INITIALIZER;
   std::deque<const Header*> list_;
   std::vector<uint8_t> cmp_mem_;
+ #ifdef MTK_MALLOC_DEBUG_ENHANCE
+  std::multimap<const Header*, BacktraceHeader*> backtraces_;
+ #else
   std::unordered_map<const Header*, BacktraceHeader*> backtraces_;
+ #endif
   size_t backtrace_num_frames_;
 
   DISALLOW_COPY_AND_ASSIGN(FreeTrackData);

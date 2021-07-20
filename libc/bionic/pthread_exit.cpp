@@ -94,7 +94,6 @@ void pthread_exit(void* return_value) {
 
   // Unmap the bionic TLS, including guard pages.
   void* allocation = reinterpret_cast<char*>(thread->bionic_tls) - PAGE_SIZE;
-  munmap(allocation, BIONIC_TLS_SIZE + 2 * PAGE_SIZE);
 
   ThreadJoinState old_state = THREAD_NOT_JOINED;
   while (old_state == THREAD_NOT_JOINED &&
@@ -121,9 +120,11 @@ void pthread_exit(void* return_value) {
       sigfillset(&mask);
       sigprocmask(SIG_SETMASK, &mask, NULL);
 
+      munmap(allocation, BIONIC_TLS_SIZE + 2 * PAGE_SIZE);
       _exit_with_stack_teardown(thread->attr.stack_base, thread->mmap_size);
     }
   }
+  munmap(allocation, BIONIC_TLS_SIZE + 2 * PAGE_SIZE);
 
   // No need to free mapped space. Either there was no space mapped, or it is left for
   // the pthread_join caller to clean up.

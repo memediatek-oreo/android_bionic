@@ -27,7 +27,9 @@
  */
 
 #include <stdint.h>
-
+#ifdef MTK_MALLOC_DEBUG_ENHANCE
+#include <stdlib.h>
+#endif
 #include "backtrace.h"
 #include "Config.h"
 #include "DebugData.h"
@@ -58,14 +60,21 @@ void FreeTrackData::LogFreeError(const Header* header, const uint8_t* pointer) {
     backtrace_log(&back_header->frames[0], back_header->num_frames);
   }
   error_log(LOG_DIVIDER);
+#ifdef MTK_MALLOC_DEBUG_ENHANCE
+  abort();
+#endif
 }
 
 void FreeTrackData::VerifyAndFree(const Header* header) {
+#ifndef MTK_MALLOC_DEBUG_ENHANCE
   const void* pointer = debug_->GetPointer(header);
   if (header->tag != DEBUG_FREE_TAG) {
     error_log(LOG_DIVIDER);
     error_log("+++ ALLOCATION %p HAS CORRUPTED HEADER TAG 0x%x AFTER FREE", pointer, header->tag);
     error_log(LOG_DIVIDER);
+#ifdef MTK_MALLOC_DEBUG_ENHANCE
+    abort();
+#endif
   } else {
     const uint8_t* memory = reinterpret_cast<const uint8_t*>(pointer);
     size_t bytes = header->usable_size;
@@ -81,13 +90,25 @@ void FreeTrackData::VerifyAndFree(const Header* header) {
       memory = &memory[bytes_to_cmp];
     }
   }
+#endif
 
+#ifdef MTK_MALLOC_DEBUG_ENHANCE
+  auto range = backtraces_.equal_range(header);
+  if (range.first != range.second) {
+	  g_dispatch->free(reinterpret_cast<void*>((range.first)->second));
+	  backtraces_.erase(range.first);
+  }
+#else
   auto back_iter = backtraces_.find(header);
   if (back_iter != backtraces_.end()) {
     g_dispatch->free(reinterpret_cast<void*>(back_iter->second));
     backtraces_.erase(header);
   }
+#endif
+
+#ifndef MTK_MALLOC_DEBUG_ENHANCE
   g_dispatch->free(header->orig_pointer);
+#endif
 }
 
 void FreeTrackData::Add(const Header* header) {
@@ -103,10 +124,18 @@ void FreeTrackData::Add(const Header* header) {
       g_dispatch->malloc(sizeof(BacktraceHeader) + backtrace_num_frames_ * sizeof(uintptr_t)));
     if (back_header) {
       back_header->num_frames = backtrace_get(&back_header->frames[0], backtrace_num_frames_);
+#ifdef MTK_MALLOC_DEBUG_ENHANCE
+      backtraces_.emplace(std::make_pair(header, back_header));
+#else
       backtraces_[header] = back_header;
+#endif
     }
   }
   list_.push_front(header);
+
+#ifdef MTK_MALLOC_DEBUG_ENHANCE
+  g_dispatch->free(header->orig_pointer);
+#endif
 
   pthread_mutex_unlock(&mutex_);
 }

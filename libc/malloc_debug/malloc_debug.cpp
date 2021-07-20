@@ -27,6 +27,9 @@
  */
 
 #include <errno.h>
+#ifdef MTK_MALLOC_DEBUG_ENHANCE
+#include <stdlib.h>
+#endif
 #include <inttypes.h>
 #include <malloc.h>
 #include <string.h>
@@ -131,6 +134,9 @@ static void LogTagError(const Header* header, const void* pointer, const char* n
   frames.resize(frame_num);
   backtrace_log(frames.data(), frames.size());
   error_log(LOG_DIVIDER);
+#ifdef MTK_MALLOC_DEBUG_ENHANCE
+  abort();
+#endif
 }
 
 static void* InitHeader(Header* header, void* orig_pointer, size_t size) {
@@ -216,6 +222,7 @@ void debug_finalize() {
     return;
   }
 
+#ifndef MTK_MALLOC_DEBUG_ENHANCE
   if (g_debug->config().options() & FREE_TRACK) {
     g_debug->free_track->VerifyAll();
   }
@@ -232,6 +239,9 @@ void debug_finalize() {
   g_debug = nullptr;
 
   DebugDisableFinalize();
+#else
+  DebugDisableSet(true);
+#endif
 }
 
 void debug_get_malloc_leak_info(uint8_t** info, size_t* overall_size,

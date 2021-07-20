@@ -48,6 +48,7 @@
 
 #include "jemalloc.h"
 #define Malloc(function)  je_ ## function
+#include "white_list.h"
 
 static constexpr MallocDispatch __libc_malloc_default_dispatch
   __attribute__((unused)) = {
@@ -337,6 +338,7 @@ static void malloc_init_impl(libc_globals* globals) {
       return;
     }
   }
+  if (bypass_white_list()) return;
 
   // Load the debug malloc shared library.
   void* malloc_impl_handle = dlopen(DEBUG_SHARED_LIB, RTLD_NOW | RTLD_LOCAL);

@@ -13,7 +13,7 @@ cc_library_static {
 
     stl: "libc++_static",
 
-    whole_static_libs: ["libasync_safe", "libdemangle"],
+    whole_static_libs: ["libasync_safe", "libdemangle", "libc_unwind"],
 
     include_dirs: ["bionic/libc"],
 
@@ -30,6 +30,12 @@ cc_library_static {
         "-Werror",
         "-Wno-error=format-zero-length",
     ],
+
+    product_variables: {
+        eng: {
+            cflags: ["-DMTK_MALLOC_DEBUG_ENHANCE"],
+        },
+    },
 }
 
 // ==============================================================
@@ -89,6 +95,12 @@ cc_library {
         "-fno-stack-protector",
         "-Wno-error=format-zero-length",
     ],
+
+    product_variables: {
+        eng: {
+            cflags: ["-DMTK_MALLOC_DEBUG_ENHANCE"],
+        },
+    },
 }
 
 // ==============================================================

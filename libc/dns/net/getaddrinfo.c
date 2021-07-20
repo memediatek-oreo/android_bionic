@@ -589,6 +589,12 @@ android_getaddrinfofornetcontext(const char *hostname, const char *servname,
 	struct addrinfo ai0;
 	struct addrinfo *pai;
 	const struct explore *ex;
+        int log_netid,log_mark,log_flags,log_family;
+
+        log_netid = netcontext ? (int)netcontext->app_netid : -1;
+        log_mark = netcontext ? (int)netcontext->app_mark : -1;
+        log_flags = hints ? hints->ai_flags: -1;
+        log_family = hints ? hints->ai_family: -1;
 
 	/* hostname is allowed to be NULL */
 	/* servname is allowed to be NULL */
@@ -727,10 +733,21 @@ android_getaddrinfofornetcontext(const char *hostname, const char *servname,
 #if defined(__ANDROID__)
 	int gai_error = android_getaddrinfo_proxy(
 		hostname, servname, hints, res, netcontext->app_netid);
-	if (gai_error != EAI_SYSTEM) {
-		return gai_error;
+
+    if (gai_error != EAI_SYSTEM) {
+      if(LOAD_IS_USER)
+        debug_log("getaddrinfo: get result from proxy gai_error = %d\n",gai_error);
+      else
+        debug_log("getaddrinfo: %s get result from proxy gai_error = %d\n", hostname, gai_error);
+      return gai_error;
 	}
 #endif
+    if (LOAD_IS_USER)
+        debug_log("[getaddrinfo]: netid=%d; mark=%d; ai_flags=%d; ai_family=%d\n",
+              log_netid, log_mark, log_flags, log_family);
+    else
+        debug_log("[getaddrinfo]: hostname=%s; servname=%s; netid=%d; mark=%d; ai_flags=%d; ai_family=%d\n",
+              hostname, servname, log_netid, log_mark, log_flags, log_family);
 
 	/*
 	 * hostname as alphabetical name.
@@ -1930,6 +1947,7 @@ _dns_getaddrinfo(void *rv, void	*cb_data, va_list ap)
 		if (pai->ai_flags & AI_ADDRCONFIG) {
 			query_ipv6 = _have_ipv6(netcontext->app_mark, netcontext->uid);
 			query_ipv4 = _have_ipv4(netcontext->app_mark, netcontext->uid);
+            debug_log("default dns: query_ipv6=%d, query_ipv4=%d\n", query_ipv6, query_ipv4);
 		}
 		if (query_ipv6) {
 			q.qtype = T_AAAA;
@@ -2246,6 +2264,11 @@ res_queryN(const char *name, /* domain name */ struct res_target *target,
 		}
 		return -1;
 	}
+
+    if (LOAD_IS_USER)
+        debug_log("res_queryN succeed");
+    else
+        debug_log("res_queryN name = %s succeed", name);
 	return ancount;
 }
 

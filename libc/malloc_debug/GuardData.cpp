@@ -28,6 +28,9 @@
 
 #include <stdint.h>
 #include <string.h>
+#ifdef MTK_MALLOC_DEBUG_ENHANCE
+#include <stdlib.h>
+#endif
 
 #include <vector>
 
@@ -67,6 +70,9 @@ void GuardData::LogFailure(const Header* header, const void* pointer, const void
   frames.resize(frame_num);
   backtrace_log(frames.data(), frames.size());
   error_log(LOG_DIVIDER);
+#ifdef MTK_MALLOC_DEBUG_ENHANCE
+  abort();
+#endif
 }
 
 FrontGuardData::FrontGuardData(DebugData* debug_data, const Config& config, size_t* offset)

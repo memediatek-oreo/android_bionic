@@ -30,9 +30,9 @@
 
 static Lock g_lock;
 static int g_trace_marker_fd = -1;
+static CachedProperty g_debug_atrace_tags_enableflags("debug.atrace.tags.enableflags");
 
 static bool should_trace() {
-  static CachedProperty g_debug_atrace_tags_enableflags("debug.atrace.tags.enableflags");
   static uint64_t g_tags;
 
   g_lock.lock();
